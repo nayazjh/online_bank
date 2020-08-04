@@ -1,17 +1,34 @@
 package com.nayaz.onlinebank.UserPortal.Controller;
 
-import java.util.HashSet;
 
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.nayaz.onlinebank.UserPortal.Dao.RoleDao;
+import com.nayaz.onlinebank.UserPortal.Entities.PrimaryAccount;
+import com.nayaz.onlinebank.UserPortal.Entities.SavingsAccount;
 import com.nayaz.onlinebank.UserPortal.Entities.User;
+import com.nayaz.onlinebank.UserPortal.Entities.Security.UserRole;
+import com.nayaz.onlinebank.UserPortal.Services.UserService;
+
+
 
 @Controller
 public class HomeController {
+	
+	@Autowired
+	private UserService userService;
+	
+	@Autowired
+    private RoleDao roleDao;
 	
 	@RequestMapping("/")
 	public String home() {
@@ -19,38 +36,52 @@ public class HomeController {
 	}
 	
 	@RequestMapping("/index")
-	public String index() {
-		return "index";
-	}
+    public String index() {
+        return "index";
+    }
 	
-	@RequestMapping(value = "/signup", method=RequestMethod.GET)
-	public String signup(Model model) {
-		User user = new User();
-		
-		model.addAttribute("user", user);
-		
-		return "signup";
-	}
+	@RequestMapping(value = "/signup", method = RequestMethod.GET)
+    public String signup(Model model) {
+        User user = new User();
+
+        model.addAttribute("user", user);
+
+        return "signup";
+    }
 	
-/*	@RequestMapping(value = "/signup", method=RequestMethod.POST)
-	public String signupUser(@ModelAttribute("user") User user,Model model) {
-		
-		if(userService.checkUserExists(user.getUsername(), user.getEmail())) {
-			if(userService.checkUserExists(user.getEmail())) {
-				model.addAttribute("emailExists", true);
-			}
-			if(userService.checkUserExists(user.getUsername())) {
-				model.addAttribute("userNameExists", true);
-			}
-			
-			return "signup";
-		} else {
-			Set<UserRole> userRoles = new HashSet<>();
-			userRoles.add(new UserRole(user, roleDao.findByName("USER")));
-			userService.createUser(user, userRoles);
-			
-			return "redirect:/";
-		}
-	}*/
+	@RequestMapping(value = "/signup", method = RequestMethod.POST)
+    public String signupPost(@ModelAttribute("user") User user,  Model model) {
+
+        if(userService.checkUserExists(user.getUsername(), user.getEmail()))  {
+
+            if (userService.checkEmailExists(user.getEmail())) {
+                model.addAttribute("emailExists", true);
+            }
+
+            if (userService.checkUsernameExists(user.getUsername())) {
+                model.addAttribute("usernameExists", true);
+            }
+
+            return "signup";
+        } else {
+        	 Set<UserRole> userRoles = new HashSet<>();
+             userRoles.add(new UserRole(user, roleDao.findByName("ROLE_USER")));
+
+            userService.createUser(user, userRoles);
+
+            return "redirect:/";
+        }
+    }
 	
+	@RequestMapping("/userPortal")
+	public String userPortal(Principal principal, Model model) {
+        User user = userService.findByUsername(principal.getName());
+        PrimaryAccount primaryAccount = user.getPrimaryAccount();
+        SavingsAccount savingsAccount = user.getSavingsAccount();
+
+        model.addAttribute("primaryAccount", primaryAccount);
+        model.addAttribute("savingsAccount", savingsAccount);
+
+        return "userPortal";
+    }
 }
